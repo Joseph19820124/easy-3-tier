@@ -90,6 +90,9 @@ export default function TodoList() {
     const completedTodos = todos.filter((t) => t.completed);
     if (completedTodos.length === 0) return;
 
+    const confirmed = window.confirm(`确定要删除 ${completedTodos.length} 个已完成的任务吗？`);
+    if (!confirmed) return;
+
     try {
       await Promise.all(completedTodos.map((t) => deleteTodo(t.id)));
       setTodos((prev) => prev.filter((t) => !t.completed));
