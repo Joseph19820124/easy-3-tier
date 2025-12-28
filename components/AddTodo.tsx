@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { Priority } from "@/types/todo";
 
 interface AddTodoProps {
-  onAdd: (title: string, description?: string, dueDate?: string) => Promise<void>;
+  onAdd: (title: string, description?: string, dueDate?: string, priority?: Priority) => Promise<void>;
 }
 
 export default function AddTodo({ onAdd }: AddTodoProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [priority, setPriority] = useState<Priority | "">("");
   const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -21,10 +23,11 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
 
     setLoading(true);
     try {
-      await onAdd(trimmedTitle, description.trim() || undefined, dueDate || undefined);
+      await onAdd(trimmedTitle, description.trim() || undefined, dueDate || undefined, priority || undefined);
       setTitle("");
       setDescription("");
       setDueDate("");
+      setPriority("");
       setShowDetails(false);
     } finally {
       setLoading(false);
@@ -65,22 +68,43 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
         </button>
       </div>
       {showDetails && (
-        <div className="flex gap-3">
+        <div className="space-y-3">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)..."
             rows={2}
-            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
             disabled={loading}
           />
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            disabled={loading}
-          />
+          <div className="flex gap-3">
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              disabled={loading}
+            />
+            <div className="flex rounded-lg overflow-hidden border border-gray-200">
+              {(['low', 'medium', 'high'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(priority === p ? "" : p)}
+                  disabled={loading}
+                  className={`px-3 py-3 text-sm transition-colors ${
+                    priority === p
+                      ? p === 'high' ? 'bg-red-500 text-white'
+                      : p === 'medium' ? 'bg-yellow-500 text-white'
+                      : 'bg-green-500 text-white'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </form>

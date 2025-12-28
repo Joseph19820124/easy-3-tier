@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Todo } from "@/types/todo";
+import { Todo, Priority } from "@/types/todo";
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from "@/lib/api";
 import TodoItem from "./TodoItem";
 import TodoModal from "./TodoModal";
@@ -12,7 +12,7 @@ export default function TodoList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'dueDate'>('newest');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'dueDate' | 'priority'>('newest');
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -33,9 +33,9 @@ export default function TodoList() {
     }
   };
 
-  const handleAdd = async (title: string, description?: string, dueDate?: string) => {
+  const handleAdd = async (title: string, description?: string, dueDate?: string, priority?: Priority) => {
     try {
-      const newTodo = await addTodo(title, description, dueDate);
+      const newTodo = await addTodo(title, description, dueDate, priority);
       setTodos((prev) => [...prev, newTodo]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add todo");
@@ -63,7 +63,7 @@ export default function TodoList() {
     setSelectedTodo(null);
   };
 
-  const handleSaveEdit = async (id: string, updates: { title?: string; description?: string }) => {
+  const handleSaveEdit = async (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority }) => {
     try {
       const updated = await updateTodo(id, updates);
       setTodos((prev) =>
@@ -94,11 +94,16 @@ export default function TodoList() {
 
     result.sort((a, b) => {
       if (sortOrder === 'dueDate') {
-        // Todos with due dates first, then by date ascending
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (sortOrder === 'priority') {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        const aPrio = a.priority ? priorityOrder[a.priority] : 3;
+        const bPrio = b.priority ? priorityOrder[b.priority] : 3;
+        return aPrio - bPrio;
       }
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
@@ -156,7 +161,7 @@ export default function TodoList() {
           </div>
 
           <div className="flex rounded-lg overflow-hidden border border-gray-200">
-            {(['newest', 'oldest', 'dueDate'] as const).map((s) => (
+            {(['newest', 'oldest', 'dueDate', 'priority'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSortOrder(s)}
@@ -166,7 +171,7 @@ export default function TodoList() {
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {s === 'newest' ? '最新' : s === 'oldest' ? '最旧' : '截止日期'}
+                {s === 'newest' ? '最新' : s === 'oldest' ? '最旧' : s === 'dueDate' ? '截止' : '优先级'}
               </button>
             ))}
           </div>

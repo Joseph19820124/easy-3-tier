@@ -37,10 +37,10 @@ function doPost(e) {
 
     switch (action) {
       case 'add':
-        result = addTodo(data.title, data.description, data.dueDate);
+        result = addTodo(data.title, data.description, data.dueDate, data.priority);
         break;
       case 'update':
-        result = updateTodo(data.id, data.completed, data.title, data.description, data.dueDate);
+        result = updateTodo(data.id, data.completed, data.title, data.description, data.dueDate, data.priority);
         break;
       case 'delete':
         result = deleteTodo(data.id);
@@ -75,7 +75,8 @@ function getAllTodos() {
         completed: row[2] === true || row[2] === 'TRUE',
         createdAt: row[3],
         description: row[4] || '',
-        dueDate: row[5] || ''
+        dueDate: row[5] || '',
+        priority: row[6] || ''
       });
     }
   }
@@ -86,14 +87,15 @@ function getAllTodos() {
 /**
  * 添加新 todo
  */
-function addTodo(title, description, dueDate) {
+function addTodo(title, description, dueDate, priority) {
   const sheet = getSheet();
   const id = generateId();
   const createdAt = new Date().toISOString();
   const desc = description || '';
   const due = dueDate || '';
+  const prio = priority || '';
 
-  sheet.appendRow([id, title, false, createdAt, desc, due]);
+  sheet.appendRow([id, title, false, createdAt, desc, due, prio]);
 
   return {
     id: id,
@@ -101,14 +103,15 @@ function addTodo(title, description, dueDate) {
     completed: false,
     createdAt: createdAt,
     description: desc,
-    dueDate: due
+    dueDate: due,
+    priority: prio
   };
 }
 
 /**
- * 更新 todo（支持修改完成状态、标题、描述和截止日期）
+ * 更新 todo（支持修改完成状态、标题、描述、截止日期和优先级）
  */
-function updateTodo(id, completed, title, description, dueDate) {
+function updateTodo(id, completed, title, description, dueDate, priority) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -118,6 +121,7 @@ function updateTodo(id, completed, title, description, dueDate) {
       let newCompleted = data[i][2] === true || data[i][2] === 'TRUE';
       let newDescription = data[i][4] || '';
       let newDueDate = data[i][5] || '';
+      let newPriority = data[i][6] || '';
 
       // 更新标题（如果提供）
       if (title !== undefined && title !== null) {
@@ -143,13 +147,20 @@ function updateTodo(id, completed, title, description, dueDate) {
         newDueDate = dueDate;
       }
 
+      // 更新优先级（如果提供）
+      if (priority !== undefined && priority !== null) {
+        sheet.getRange(i + 1, 7).setValue(priority);
+        newPriority = priority;
+      }
+
       return {
         id: id,
         title: newTitle,
         completed: newCompleted,
         createdAt: data[i][3],
         description: newDescription,
-        dueDate: newDueDate
+        dueDate: newDueDate,
+        priority: newPriority
       };
     }
   }
@@ -208,7 +219,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const headers = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate'];
+  const headers = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {

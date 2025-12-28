@@ -1,4 +1,4 @@
-import { Todo, ApiResponse } from "@/types/todo";
+import { Todo, ApiResponse, Priority } from "@/types/todo";
 
 const API_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
 
@@ -13,7 +13,7 @@ export async function fetchTodos(): Promise<Todo[]> {
   return result.data || [];
 }
 
-export async function addTodo(title: string, description?: string, dueDate?: string): Promise<Todo> {
+export async function addTodo(title: string, description?: string, dueDate?: string, priority?: Priority): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -24,6 +24,7 @@ export async function addTodo(title: string, description?: string, dueDate?: str
       title,
       description,
       dueDate,
+      priority,
     }),
   });
 
@@ -38,7 +39,7 @@ export async function addTodo(title: string, description?: string, dueDate?: str
 
 export async function updateTodo(
   id: string,
-  updates: { completed?: boolean; title?: string; description?: string; dueDate?: string }
+  updates: { completed?: boolean; title?: string; description?: string; dueDate?: string; priority?: Priority }
 ): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",

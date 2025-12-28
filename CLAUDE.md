@@ -39,13 +39,14 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Todo CRUD**: Create, read, update, delete todos
 - **Description**: Each todo has optional description field; click todo to open edit modal
 - **Due Date**: Optional due date with overdue highlighting (red when past due)
+- **Priority**: Three levels (high/medium/low) with color-coded badges
 - **Filter**: View all/active/completed todos
-- **Sort**: Sort by newest or oldest first
+- **Sort**: Sort by newest, oldest, due date, or priority
 - **Toggle**: Mark todos complete/incomplete
 
 **Data Model (Google Sheet columns):**
 ```
-id | title | completed | createdAt | description | dueDate
+id | title | completed | createdAt | description | dueDate | priority
 ```
 
 ## Environment Setup

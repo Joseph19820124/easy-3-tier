@@ -67,13 +67,24 @@ export default function TodoItem({ todo, onToggle, onOpenModal, onDelete }: Todo
         className="flex-1 cursor-pointer"
         onClick={() => onOpenModal(todo)}
       >
-        <span
-          className={`block ${
-            todo.completed ? "line-through text-gray-400" : "text-gray-700"
-          }`}
-        >
-          {todo.title}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`${
+              todo.completed ? "line-through text-gray-400" : "text-gray-700"
+            }`}
+          >
+            {todo.title}
+          </span>
+          {todo.priority && (
+            <span className={`px-1.5 py-0.5 text-xs rounded ${
+              todo.priority === 'high' ? 'bg-red-100 text-red-600'
+              : todo.priority === 'medium' ? 'bg-yellow-100 text-yellow-600'
+              : 'bg-green-100 text-green-600'
+            }`}>
+              {todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}
+            </span>
+          )}
+        </div>
         {todo.description && (
           <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             {todo.description}

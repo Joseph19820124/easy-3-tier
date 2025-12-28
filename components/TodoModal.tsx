@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Todo } from "@/types/todo";
+import { Todo, Priority } from "@/types/todo";
 
 interface TodoModalProps {
   todo: Todo;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string }) => Promise<void>;
+  onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority }) => Promise<void>;
 }
 
 export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description || "");
   const [dueDate, setDueDate] = useState(todo.dueDate || "");
+  const [priority, setPriority] = useState<Priority | "">(todo.priority || "");
   const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -22,6 +23,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
       setTitle(todo.title);
       setDescription(todo.description || "");
       setDueDate(todo.dueDate || "");
+      setPriority(todo.priority || "");
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [isOpen, todo]);
@@ -44,10 +46,11 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    const updates: { title?: string; description?: string; dueDate?: string } = {};
+    const updates: { title?: string; description?: string; dueDate?: string; priority?: Priority } = {};
     if (trimmedTitle !== todo.title) updates.title = trimmedTitle;
     if (description !== (todo.description || "")) updates.description = description;
     if (dueDate !== (todo.dueDate || "")) updates.dueDate = dueDate;
+    if (priority !== (todo.priority || "")) updates.priority = priority as Priority;
 
     if (Object.keys(updates).length === 0) {
       onClose();
@@ -104,16 +107,42 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              截止日期
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                截止日期
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                优先级
+              </label>
+              <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                {(['low', 'medium', 'high'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriority(priority === p ? "" : p)}
+                    className={`flex-1 px-3 py-2 text-sm transition-colors ${
+                      priority === p
+                        ? p === 'high' ? 'bg-red-500 text-white'
+                        : p === 'medium' ? 'bg-yellow-500 text-white'
+                        : 'bg-green-500 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p === 'high' ? '高' : p === 'medium' ? '中' : '低'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
