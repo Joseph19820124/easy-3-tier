@@ -13,6 +13,7 @@ export default function TodoList() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'dueDate' | 'priority'>('newest');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -87,6 +88,15 @@ export default function TodoList() {
 
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter(todo => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        if (!todo.title.toLowerCase().includes(query) &&
+            !todo.description?.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+      // Status filter
       if (filter === 'all') return true;
       if (filter === 'active') return !todo.completed;
       return todo.completed;
@@ -138,6 +148,14 @@ export default function TodoList() {
       )}
 
       <div className="flex flex-col gap-3">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="搜索任务..."
+          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        />
+
         <div className="flex justify-between items-center text-sm text-gray-500">
           <span>{todos.length} tasks total</span>
           <span>{completedCount} completed</span>

@@ -3,6 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Todo, Priority } from "@/types/todo";
 
+// 将日期转换为 YYYY-MM-DD 格式（input type="date" 要求的格式）
+function formatDateForInput(dateStr: string | undefined): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().split('T')[0];
+}
+
 interface TodoModalProps {
   todo: Todo;
   isOpen: boolean;
@@ -13,7 +21,7 @@ interface TodoModalProps {
 export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description || "");
-  const [dueDate, setDueDate] = useState(todo.dueDate || "");
+  const [dueDate, setDueDate] = useState(formatDateForInput(todo.dueDate));
   const [priority, setPriority] = useState<Priority | "">(todo.priority || "");
   const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -22,7 +30,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     if (isOpen) {
       setTitle(todo.title);
       setDescription(todo.description || "");
-      setDueDate(todo.dueDate || "");
+      setDueDate(formatDateForInput(todo.dueDate));
       setPriority(todo.priority || "");
       setTimeout(() => titleRef.current?.focus(), 100);
     }
@@ -49,7 +57,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     const updates: { title?: string; description?: string; dueDate?: string; priority?: Priority } = {};
     if (trimmedTitle !== todo.title) updates.title = trimmedTitle;
     if (description !== (todo.description || "")) updates.description = description;
-    if (dueDate !== (todo.dueDate || "")) updates.dueDate = dueDate;
+    if (dueDate !== formatDateForInput(todo.dueDate)) updates.dueDate = dueDate;
     if (priority !== (todo.priority || "")) updates.priority = priority as Priority;
 
     if (Object.keys(updates).length === 0) {
