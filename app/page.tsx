@@ -15,7 +15,7 @@ export default function Home() {
       </div>
 
       <footer className="text-center mt-8 text-sm text-gray-400">
-        <p>Data stored in Google Sheets</p>
+        <p>Data stored in Google Sheets • v1.1</p>
       </footer>
     </main>
   );
