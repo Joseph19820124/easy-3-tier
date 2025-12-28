@@ -61,3 +61,6 @@ When modifying `gas/Code.gs`:
 1. Deploy as Web App with "Anyone" access
 2. After changes, create a new deployment (not edit existing) to get updated URL
 3. Update `NEXT_PUBLIC_GAS_URL` if deployment URL changes
+
+**Schema Migration:**
+When adding new fields to the data model, run `initializeSheet()` in GAS editor to auto-update missing header columns in Google Sheets.
