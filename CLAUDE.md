@@ -46,6 +46,7 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Sort**: Sort by newest, oldest, due date, or priority
 - **Toggle**: Mark todos complete/incomplete
 - **Clear Completed**: Bulk delete all completed todos
+- **Trash/Restore**: Soft-deleted todos go to trash; can be restored via trash modal
 
 **Data Model (Google Sheet columns):**
 ```
