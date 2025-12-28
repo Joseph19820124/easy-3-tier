@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Todo } from "@/types/todo";
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from "@/lib/api";
 import TodoItem from "./TodoItem";
@@ -10,6 +10,8 @@ export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
     loadTodos();
@@ -59,6 +61,22 @@ export default function TodoList() {
 
   const completedCount = todos.filter((t) => t.completed).length;
 
+  const filteredAndSortedTodos = useMemo(() => {
+    let result = todos.filter(todo => {
+      if (filter === 'all') return true;
+      if (filter === 'active') return !todo.completed;
+      return todo.completed;
+    });
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [todos, filter, sortOrder]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -83,9 +101,36 @@ export default function TodoList() {
         </div>
       )}
 
-      <div className="flex justify-between items-center text-sm text-gray-500">
-        <span>{todos.length} tasks total</span>
-        <span>{completedCount} completed</span>
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center text-sm text-gray-500">
+          <span>{todos.length} tasks total</span>
+          <span>{completedCount} completed</span>
+        </div>
+
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <div className="flex rounded-lg overflow-hidden border border-gray-200">
+            {(['all', 'active', 'completed'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-sm transition-colors ${
+                  filter === f
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {f === 'all' ? '全部' : f === 'active' ? '待办' : '已完成'}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            {sortOrder === 'newest' ? '最新优先 ↓' : '最旧优先 ↑'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -93,8 +138,12 @@ export default function TodoList() {
           <p className="text-center text-gray-400 py-8">
             No tasks yet. Add one above!
           </p>
+        ) : filteredAndSortedTodos.length === 0 ? (
+          <p className="text-center text-gray-400 py-8">
+            No {filter === 'active' ? 'active' : 'completed'} tasks
+          </p>
         ) : (
-          todos.map((todo) => (
+          filteredAndSortedTodos.map((todo) => (
             <TodoItem
               key={todo.id}
               todo={todo}
