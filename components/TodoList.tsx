@@ -12,7 +12,7 @@ export default function TodoList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'dueDate'>('newest');
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -93,6 +93,13 @@ export default function TodoList() {
     });
 
     result.sort((a, b) => {
+      if (sortOrder === 'dueDate') {
+        // Todos with due dates first, then by date ascending
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
@@ -148,12 +155,21 @@ export default function TodoList() {
             ))}
           </div>
 
-          <button
-            onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            {sortOrder === 'newest' ? '最新优先 ↓' : '最旧优先 ↑'}
-          </button>
+          <div className="flex rounded-lg overflow-hidden border border-gray-200">
+            {(['newest', 'oldest', 'dueDate'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortOrder(s)}
+                className={`px-3 py-1.5 text-sm transition-colors ${
+                  sortOrder === s
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {s === 'newest' ? '最新' : s === 'oldest' ? '最旧' : '截止日期'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
