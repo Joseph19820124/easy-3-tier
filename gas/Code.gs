@@ -58,17 +58,18 @@ function doPost(e) {
 // ============ CRUD 操作 ============
 
 /**
- * 获取所有 todos
+ * 获取所有 todos（排除已软删除的记录）
  */
 function getAllTodos() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
-  // 跳过标题行
+  // 跳过标题行，过滤已删除的记录
   const todos = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[0]) { // 确保有 ID
+    const isDeleted = row[7] === true || row[7] === 'TRUE';
+    if (row[0] && !isDeleted) { // 确保有 ID 且未删除
       todos.push({
         id: row[0],
         title: row[1],
@@ -95,7 +96,7 @@ function addTodo(title, description, dueDate, priority) {
   const due = dueDate || '';
   const prio = priority || '';
 
-  sheet.appendRow([id, title, false, createdAt, desc, due, prio]);
+  sheet.appendRow([id, title, false, createdAt, desc, due, prio, false]);
 
   return {
     id: id,
@@ -169,7 +170,7 @@ function updateTodo(id, completed, title, description, dueDate, priority) {
 }
 
 /**
- * 删除 todo
+ * 软删除 todo（设置 deleted 标志为 true）
  */
 function deleteTodo(id) {
   const sheet = getSheet();
@@ -177,7 +178,7 @@ function deleteTodo(id) {
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
-      sheet.deleteRow(i + 1);
+      sheet.getRange(i + 1, 8).setValue(true); // 第8列为 deleted 标志
       return { id: id, deleted: true };
     }
   }
@@ -220,7 +221,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority'];
+  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority', 'deleted'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {

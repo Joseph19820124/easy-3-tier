@@ -48,8 +48,10 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 
 **Data Model (Google Sheet columns):**
 ```
-id | title | completed | createdAt | description | dueDate | priority
+id | title | completed | createdAt | description | dueDate | priority | deleted
 ```
+
+Note: `deleted` is a soft-delete flag. Records with `deleted=true` are hidden from frontend but preserved in the database.
 
 ## Environment Setup
 
