@@ -1,0 +1,46 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+npm run dev      # Start development server at localhost:3000
+npm run build    # Build for production
+npm run lint     # Run ESLint
+npm start        # Start production server
+```
+
+## Architecture
+
+This is a 3-tier Todo application:
+
+```
+Next.js (Vercel) → Google Apps Script (REST API) → Google Sheets (Database)
+```
+
+**Data Flow:**
+- Frontend calls `lib/api.ts` functions which POST to the GAS endpoint
+- GAS (`gas/Code.gs`) parses the action type and performs CRUD on the Sheet
+- All API calls use `Content-Type: text/plain` with JSON body (GAS requirement)
+
+**Key Files:**
+- `lib/api.ts` - All backend communication; uses `NEXT_PUBLIC_GAS_URL` env var
+- `gas/Code.gs` - Backend logic; `SHEET_ID` constant must match your Google Sheet
+- `types/todo.ts` - Shared `Todo` and `ApiResponse<T>` types
+
+**Component Hierarchy:**
+```
+page.tsx → TodoList (client component, manages state) → TodoItem, AddTodo
+```
+
+## Environment Setup
+
+Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_GAS_URL` to your deployed Google Apps Script Web App URL.
+
+## Google Apps Script Deployment
+
+When modifying `gas/Code.gs`:
+1. Deploy as Web App with "Anyone" access
+2. After changes, create a new deployment (not edit existing) to get updated URL
+3. Update `NEXT_PUBLIC_GAS_URL` if deployment URL changes
