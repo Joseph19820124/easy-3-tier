@@ -117,15 +117,25 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
           className="flex-1 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       ) : (
-        <span
-          onDoubleClick={handleStartEdit}
-          className={`flex-1 cursor-pointer ${
-            todo.completed ? "line-through text-gray-400" : "text-gray-700"
-          }`}
-          title="双击编辑"
-        >
-          {todo.title}
-        </span>
+        <div className="flex-1">
+          <span
+            onDoubleClick={handleStartEdit}
+            className={`cursor-pointer ${
+              todo.completed ? "line-through text-gray-400" : "text-gray-700"
+            }`}
+            title="双击编辑"
+          >
+            {todo.title}
+          </span>
+          <div className="text-xs text-gray-400 mt-1">
+            {new Date(todo.createdAt).toLocaleString('zh-CN', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
+        </div>
       )}
 
       <button
