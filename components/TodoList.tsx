@@ -41,12 +41,23 @@ export default function TodoList() {
 
   const handleToggle = async (id: string, completed: boolean) => {
     try {
-      const updated = await updateTodo(id, completed);
+      const updated = await updateTodo(id, { completed });
       setTodos((prev) =>
         prev.map((todo) => (todo.id === id ? updated : todo))
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update todo");
+    }
+  };
+
+  const handleEdit = async (id: string, title: string) => {
+    try {
+      const updated = await updateTodo(id, { title });
+      setTodos((prev) =>
+        prev.map((todo) => (todo.id === id ? updated : todo))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to edit todo");
     }
   };
 
@@ -148,6 +159,7 @@ export default function TodoList() {
               key={todo.id}
               todo={todo}
               onToggle={handleToggle}
+              onEdit={handleEdit}
               onDelete={handleDelete}
             />
           ))

@@ -40,7 +40,7 @@ function doPost(e) {
         result = addTodo(data.title);
         break;
       case 'update':
-        result = updateTodo(data.id, data.completed);
+        result = updateTodo(data.id, data.completed, data.title);
         break;
       case 'delete':
         result = deleteTodo(data.id);
@@ -100,19 +100,33 @@ function addTodo(title) {
 }
 
 /**
- * 更新 todo 完成状态
+ * 更新 todo（支持修改完成状态和标题）
  */
-function updateTodo(id, completed) {
+function updateTodo(id, completed, title) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === id) {
-      sheet.getRange(i + 1, 3).setValue(completed); // 第3列是 completed
+      let newTitle = data[i][1];
+      let newCompleted = data[i][2] === true || data[i][2] === 'TRUE';
+
+      // 更新标题（如果提供）
+      if (title !== undefined && title !== null) {
+        sheet.getRange(i + 1, 2).setValue(title);
+        newTitle = title;
+      }
+
+      // 更新完成状态（如果提供）
+      if (completed !== undefined && completed !== null) {
+        sheet.getRange(i + 1, 3).setValue(completed);
+        newCompleted = completed;
+      }
+
       return {
         id: id,
-        title: data[i][1],
-        completed: completed,
+        title: newTitle,
+        completed: newCompleted,
         createdAt: data[i][3]
       };
     }

@@ -36,7 +36,7 @@ export async function addTodo(title: string): Promise<Todo> {
 
 export async function updateTodo(
   id: string,
-  completed: boolean
+  updates: { completed?: boolean; title?: string }
 ): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",
@@ -46,7 +46,7 @@ export async function updateTodo(
     body: JSON.stringify({
       action: "update",
       id,
-      completed,
+      ...updates,
     }),
   });
 
