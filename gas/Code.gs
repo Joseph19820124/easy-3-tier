@@ -216,16 +216,34 @@ function createJsonResponse(data) {
 /**
  * 初始化工作表标题行
  * 首次使用时手动运行此函数
+ * 如果表头缺少新字段，会自动补全
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const headers = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority'];
+  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
+    sheet.appendRow(expectedHeaders);
     Logger.log('Sheet initialized with headers');
+    return;
+  }
+
+  // 获取当前表头
+  const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // 检查并补全缺失的表头
+  let updated = false;
+  for (let i = 0; i < expectedHeaders.length; i++) {
+    if (i >= currentHeaders.length || currentHeaders[i] !== expectedHeaders[i]) {
+      sheet.getRange(1, i + 1).setValue(expectedHeaders[i]);
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    Logger.log('Sheet headers updated: ' + expectedHeaders.join(', '));
   } else {
-    Logger.log('Sheet already has data');
+    Logger.log('Sheet headers are up to date');
   }
 }
