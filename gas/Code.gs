@@ -37,10 +37,10 @@ function doPost(e) {
 
     switch (action) {
       case 'add':
-        result = addTodo(data.title);
+        result = addTodo(data.title, data.description);
         break;
       case 'update':
-        result = updateTodo(data.id, data.completed, data.title);
+        result = updateTodo(data.id, data.completed, data.title, data.description);
         break;
       case 'delete':
         result = deleteTodo(data.id);
@@ -73,7 +73,8 @@ function getAllTodos() {
         id: row[0],
         title: row[1],
         completed: row[2] === true || row[2] === 'TRUE',
-        createdAt: row[3]
+        createdAt: row[3],
+        description: row[4] || ''
       });
     }
   }
@@ -84,25 +85,27 @@ function getAllTodos() {
 /**
  * 添加新 todo
  */
-function addTodo(title) {
+function addTodo(title, description) {
   const sheet = getSheet();
   const id = generateId();
   const createdAt = new Date().toISOString();
+  const desc = description || '';
 
-  sheet.appendRow([id, title, false, createdAt]);
+  sheet.appendRow([id, title, false, createdAt, desc]);
 
   return {
     id: id,
     title: title,
     completed: false,
-    createdAt: createdAt
+    createdAt: createdAt,
+    description: desc
   };
 }
 
 /**
- * 更新 todo（支持修改完成状态和标题）
+ * 更新 todo（支持修改完成状态、标题和描述）
  */
-function updateTodo(id, completed, title) {
+function updateTodo(id, completed, title, description) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -110,6 +113,7 @@ function updateTodo(id, completed, title) {
     if (data[i][0] === id) {
       let newTitle = data[i][1];
       let newCompleted = data[i][2] === true || data[i][2] === 'TRUE';
+      let newDescription = data[i][4] || '';
 
       // 更新标题（如果提供）
       if (title !== undefined && title !== null) {
@@ -123,11 +127,18 @@ function updateTodo(id, completed, title) {
         newCompleted = completed;
       }
 
+      // 更新描述（如果提供）
+      if (description !== undefined && description !== null) {
+        sheet.getRange(i + 1, 5).setValue(description);
+        newDescription = description;
+      }
+
       return {
         id: id,
         title: newTitle,
         completed: newCompleted,
-        createdAt: data[i][3]
+        createdAt: data[i][3],
+        description: newDescription
       };
     }
   }
@@ -186,7 +197,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const headers = ['id', 'title', 'completed', 'createdAt'];
+  const headers = ['id', 'title', 'completed', 'createdAt', 'description'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {

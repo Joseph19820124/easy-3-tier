@@ -13,7 +13,7 @@ export async function fetchTodos(): Promise<Todo[]> {
   return result.data || [];
 }
 
-export async function addTodo(title: string): Promise<Todo> {
+export async function addTodo(title: string, description?: string): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -22,6 +22,7 @@ export async function addTodo(title: string): Promise<Todo> {
     body: JSON.stringify({
       action: "add",
       title,
+      description,
     }),
   });
 
@@ -36,7 +37,7 @@ export async function addTodo(title: string): Promise<Todo> {
 
 export async function updateTodo(
   id: string,
-  updates: { completed?: boolean; title?: string }
+  updates: { completed?: boolean; title?: string; description?: string }
 ): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",

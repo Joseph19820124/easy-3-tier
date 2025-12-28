@@ -1,60 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Todo } from "@/types/todo";
 
 interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => Promise<void>;
-  onEdit: (id: string, title: string) => Promise<void>;
+  onOpenModal: (todo: Todo) => void;
   onDelete: (id: string) => Promise<void>;
 }
 
-export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onOpenModal, onDelete }: TodoItemProps) {
   const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(todo.title);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  const handleStartEdit = () => {
-    if (!loading) {
-      setEditTitle(todo.title);
-      setIsEditing(true);
-    }
-  };
-
-  const handleSaveEdit = async () => {
-    const trimmed = editTitle.trim();
-    if (trimmed && trimmed !== todo.title) {
-      setLoading(true);
-      try {
-        await onEdit(todo.id, trimmed);
-      } finally {
-        setLoading(false);
-      }
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditTitle(todo.title);
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
-    }
-  };
 
   const handleToggle = async () => {
     setLoading(true);
@@ -76,14 +33,14 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
 
   return (
     <div
-      className={`flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${
+      className={`flex items-start gap-4 p-4 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${
         loading ? "opacity-50" : ""
       }`}
     >
       <button
         onClick={handleToggle}
         disabled={loading}
-        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+        className={`mt-1 w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
           todo.completed
             ? "bg-green-500 border-green-500 text-white"
             : "border-gray-300 hover:border-blue-500"
@@ -106,37 +63,31 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
         )}
       </button>
 
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          onBlur={handleSaveEdit}
-          onKeyDown={handleKeyDown}
-          className="flex-1 px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      ) : (
-        <div className="flex-1">
-          <span
-            onDoubleClick={handleStartEdit}
-            className={`cursor-pointer ${
-              todo.completed ? "line-through text-gray-400" : "text-gray-700"
-            }`}
-            title="双击编辑"
-          >
-            {todo.title}
-          </span>
-          <div className="text-xs text-gray-400 mt-1">
-            {new Date(todo.createdAt).toLocaleString('zh-CN', {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
+      <div
+        className="flex-1 cursor-pointer"
+        onClick={() => onOpenModal(todo)}
+      >
+        <span
+          className={`block ${
+            todo.completed ? "line-through text-gray-400" : "text-gray-700"
+          }`}
+        >
+          {todo.title}
+        </span>
+        {todo.description && (
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            {todo.description}
+          </p>
+        )}
+        <div className="text-xs text-gray-400 mt-1">
+          {new Date(todo.createdAt).toLocaleString('zh-CN', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
         </div>
-      )}
+      </div>
 
       <button
         onClick={handleDelete}

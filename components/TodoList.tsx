@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Todo } from "@/types/todo";
 import { fetchTodos, addTodo, updateTodo, deleteTodo } from "@/lib/api";
 import TodoItem from "./TodoItem";
+import TodoModal from "./TodoModal";
 import AddTodo from "./AddTodo";
 
 export default function TodoList() {
@@ -12,6 +13,8 @@ export default function TodoList() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadTodos();
@@ -50,9 +53,19 @@ export default function TodoList() {
     }
   };
 
-  const handleEdit = async (id: string, title: string) => {
+  const handleOpenModal = (todo: Todo) => {
+    setSelectedTodo(todo);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTodo(null);
+  };
+
+  const handleSaveEdit = async (id: string, updates: { title?: string; description?: string }) => {
     try {
-      const updated = await updateTodo(id, { title });
+      const updated = await updateTodo(id, updates);
       setTodos((prev) =>
         prev.map((todo) => (todo.id === id ? updated : todo))
       );
@@ -159,12 +172,21 @@ export default function TodoList() {
               key={todo.id}
               todo={todo}
               onToggle={handleToggle}
-              onEdit={handleEdit}
+              onOpenModal={handleOpenModal}
               onDelete={handleDelete}
             />
           ))
         )}
       </div>
+
+      {selectedTodo && (
+        <TodoModal
+          todo={selectedTodo}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
