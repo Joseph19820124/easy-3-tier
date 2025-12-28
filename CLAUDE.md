@@ -31,7 +31,20 @@ Next.js (Vercel) → Google Apps Script (REST API) → Google Sheets (Database)
 
 **Component Hierarchy:**
 ```
-page.tsx → TodoList (client component, manages state) → TodoItem, AddTodo
+page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
+```
+
+## Features
+
+- **Todo CRUD**: Create, read, update, delete todos
+- **Description**: Each todo has optional description field; click todo to open edit modal
+- **Filter**: View all/active/completed todos
+- **Sort**: Sort by newest or oldest first
+- **Toggle**: Mark todos complete/incomplete
+
+**Data Model (Google Sheet columns):**
+```
+id | title | completed | createdAt | description
 ```
 
 ## Environment Setup
