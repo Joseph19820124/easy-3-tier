@@ -40,6 +40,7 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Description**: Each todo has optional description field; click todo to open edit modal
 - **Due Date**: Optional due date with overdue highlighting (red when past due)
 - **Priority**: Three levels (high/medium/low) with color-coded badges
+- **Search**: Filter todos by title or description (case-insensitive, real-time)
 - **Filter**: View all/active/completed todos
 - **Sort**: Sort by newest, oldest, due date, or priority
 - **Toggle**: Mark todos complete/incomplete
