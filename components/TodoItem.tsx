@@ -8,9 +8,10 @@ interface TodoItemProps {
   onToggle: (id: string, completed: boolean) => Promise<void>;
   onOpenModal: (todo: Todo) => void;
   onDelete: (id: string) => Promise<void>;
+  onTagClick?: (tag: string) => void;
 }
 
-export default function TodoItem({ todo, onToggle, onOpenModal, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onOpenModal, onDelete, onTagClick }: TodoItemProps) {
   const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
@@ -115,6 +116,22 @@ export default function TodoItem({ todo, onToggle, onOpenModal, onDelete }: Todo
             </span>
           )}
         </div>
+        {todo.tags && todo.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {todo.tags.map((tag) => (
+              <button
+                key={tag}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTagClick?.(tag);
+                }}
+                className="px-2 py-0.5 text-xs bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition-colors"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <button

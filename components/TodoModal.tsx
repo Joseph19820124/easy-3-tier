@@ -15,7 +15,7 @@ interface TodoModalProps {
   todo: Todo;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority }) => Promise<void>;
+  onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority; tags?: string[] }) => Promise<void>;
 }
 
 export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalProps) {
@@ -23,6 +23,8 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
   const [description, setDescription] = useState(todo.description || "");
   const [dueDate, setDueDate] = useState(formatDateForInput(todo.dueDate));
   const [priority, setPriority] = useState<Priority | "">(todo.priority || "");
+  const [tags, setTags] = useState<string[]>(todo.tags || []);
+  const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -32,6 +34,8 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
       setDescription(todo.description || "");
       setDueDate(formatDateForInput(todo.dueDate));
       setPriority(todo.priority || "");
+      setTags(todo.tags || []);
+      setTagInput("");
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [isOpen, todo]);
@@ -54,11 +58,12 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    const updates: { title?: string; description?: string; dueDate?: string; priority?: Priority } = {};
+    const updates: { title?: string; description?: string; dueDate?: string; priority?: Priority; tags?: string[] } = {};
     if (trimmedTitle !== todo.title) updates.title = trimmedTitle;
     if (description !== (todo.description || "")) updates.description = description;
     if (dueDate !== formatDateForInput(todo.dueDate)) updates.dueDate = dueDate;
     if (priority !== (todo.priority || "")) updates.priority = priority as Priority;
+    if (JSON.stringify(tags) !== JSON.stringify(todo.tags || [])) updates.tags = tags;
 
     if (Object.keys(updates).length === 0) {
       onClose();
@@ -151,6 +156,46 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
                 ))}
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              标签
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setTags(tags.filter((t) => t !== tag))}
+                    className="text-purple-500 hover:text-purple-700"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tagInput.trim()) {
+                  e.preventDefault();
+                  const newTag = tagInput.trim();
+                  if (!tags.includes(newTag)) {
+                    setTags([...tags, newTag]);
+                  }
+                  setTagInput("");
+                }
+              }}
+              placeholder="添加标签，按 Enter 确认"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
           </div>
         </div>
 

@@ -8,6 +8,7 @@ export interface Todo {
   createdAt: string;
   dueDate?: string;
   priority?: Priority;
+  tags?: string[];
 }
 
 export interface ApiResponse<T> {

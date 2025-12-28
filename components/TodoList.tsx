@@ -14,6 +14,7 @@ export default function TodoList() {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'dueDate' | 'priority'>('newest');
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -34,9 +35,9 @@ export default function TodoList() {
     }
   };
 
-  const handleAdd = async (title: string, description?: string, dueDate?: string, priority?: Priority) => {
+  const handleAdd = async (title: string, description?: string, dueDate?: string, priority?: Priority, tags?: string[]) => {
     try {
-      const newTodo = await addTodo(title, description, dueDate, priority);
+      const newTodo = await addTodo(title, description, dueDate, priority, tags);
       setTodos((prev) => [...prev, newTodo]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add todo");
@@ -64,7 +65,7 @@ export default function TodoList() {
     setSelectedTodo(null);
   };
 
-  const handleSaveEdit = async (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority }) => {
+  const handleSaveEdit = async (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority; tags?: string[] }) => {
     try {
       const updated = await updateTodo(id, updates);
       setTodos((prev) =>
@@ -101,6 +102,15 @@ export default function TodoList() {
     }
   };
 
+  // Get all unique tags from todos
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    todos.forEach(todo => {
+      todo.tags?.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [todos]);
+
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter(todo => {
       // Search filter
@@ -110,6 +120,10 @@ export default function TodoList() {
             !todo.description?.toLowerCase().includes(query)) {
           return false;
         }
+      }
+      // Tag filter
+      if (selectedTag && !todo.tags?.includes(selectedTag)) {
+        return false;
       }
       // Status filter
       if (filter === 'all') return true;
@@ -136,7 +150,7 @@ export default function TodoList() {
     });
 
     return result;
-  }, [todos, filter, sortOrder]);
+  }, [todos, filter, sortOrder, searchQuery, selectedTag]);
 
   if (loading) {
     return (
@@ -163,13 +177,43 @@ export default function TodoList() {
       )}
 
       <div className="flex flex-col gap-3">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="搜索任务..."
-          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索任务..."
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          />
+          {allTags.length > 0 && (
+            <select
+              value={selectedTag || ""}
+              onChange={(e) => setSelectedTag(e.target.value || null)}
+              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+            >
+              <option value="">全部标签</option>
+              {allTags.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        {selectedTag && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">筛选标签:</span>
+            <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full flex items-center gap-1">
+              {selectedTag}
+              <button
+                onClick={() => setSelectedTag(null)}
+                className="text-purple-500 hover:text-purple-700"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
 
         <div className="flex justify-between items-center text-sm text-gray-500">
           <span>{todos.length} tasks total</span>
@@ -238,6 +282,7 @@ export default function TodoList() {
               onToggle={handleToggle}
               onOpenModal={handleOpenModal}
               onDelete={handleDelete}
+              onTagClick={setSelectedTag}
             />
           ))
         )}

@@ -40,18 +40,19 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Description**: Each todo has optional description field; click todo to open edit modal
 - **Due Date**: Optional due date with overdue highlighting (red when past due)
 - **Priority**: Three levels (high/medium/low) with color-coded badges
+- **Tags**: Free-form tags with purple badges; click tag to filter; dropdown for tag selection
 - **Search**: Filter todos by title or description (case-insensitive, real-time)
-- **Filter**: View all/active/completed todos
+- **Filter**: View all/active/completed todos; filter by tag
 - **Sort**: Sort by newest, oldest, due date, or priority
 - **Toggle**: Mark todos complete/incomplete
 - **Clear Completed**: Bulk delete all completed todos
 
 **Data Model (Google Sheet columns):**
 ```
-id | title | completed | createdAt | description | dueDate | priority | deleted
+id | title | completed | createdAt | description | dueDate | priority | deleted | tags
 ```
 
-Note: `deleted` is a soft-delete flag. Records with `deleted=true` are hidden from frontend but preserved in the database.
+Note: `deleted` is a soft-delete flag. Records with `deleted=true` are hidden from frontend but preserved in the database. `tags` is stored as a JSON array string (e.g., `["work","urgent"]`).
 
 ## Environment Setup
 

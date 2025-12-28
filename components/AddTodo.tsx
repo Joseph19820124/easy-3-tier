@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Priority } from "@/types/todo";
 
 interface AddTodoProps {
-  onAdd: (title: string, description?: string, dueDate?: string, priority?: Priority) => Promise<void>;
+  onAdd: (title: string, description?: string, dueDate?: string, priority?: Priority, tags?: string[]) => Promise<void>;
 }
 
 export default function AddTodo({ onAdd }: AddTodoProps) {
@@ -12,6 +12,8 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority | "">("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -23,11 +25,13 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
 
     setLoading(true);
     try {
-      await onAdd(trimmedTitle, description.trim() || undefined, dueDate || undefined, priority || undefined);
+      await onAdd(trimmedTitle, description.trim() || undefined, dueDate || undefined, priority || undefined, tags.length > 0 ? tags : undefined);
       setTitle("");
       setDescription("");
       setDueDate("");
       setPriority("");
+      setTags([]);
+      setTagInput("");
       setShowDetails(false);
     } finally {
       setLoading(false);
@@ -104,6 +108,43 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setTags(tags.filter((t) => t !== tag))}
+                    className="text-purple-500 hover:text-purple-700"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tagInput.trim()) {
+                  e.preventDefault();
+                  const newTag = tagInput.trim();
+                  if (!tags.includes(newTag)) {
+                    setTags([...tags, newTag]);
+                  }
+                  setTagInput("");
+                }
+              }}
+              placeholder="添加标签，按 Enter 确认"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              disabled={loading}
+            />
           </div>
         </div>
       )}
