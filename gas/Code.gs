@@ -45,6 +45,12 @@ function doPost(e) {
       case 'delete':
         result = deleteTodo(data.id);
         break;
+      case 'restore':
+        result = restoreTodo(data.id);
+        break;
+      case 'getDeleted':
+        result = getDeletedTodos();
+        break;
       default:
         throw new Error('Invalid action: ' + action);
     }
@@ -209,6 +215,78 @@ function deleteTodo(id) {
     if (data[i][0] === id) {
       sheet.getRange(i + 1, 8).setValue(true); // 第8列为 deleted 标志
       return { id: id, deleted: true };
+    }
+  }
+
+  throw new Error('Todo not found: ' + id);
+}
+
+/**
+ * 获取已删除的 todos
+ */
+function getDeletedTodos() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  const todos = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const isDeleted = row[7] === true || row[7] === 'TRUE';
+    if (row[0] && isDeleted) { // 确保有 ID 且已删除
+      let tags = [];
+      if (row[8]) {
+        try {
+          tags = JSON.parse(row[8]);
+        } catch (e) {
+          tags = [];
+        }
+      }
+      todos.push({
+        id: row[0],
+        title: row[1],
+        completed: row[2] === true || row[2] === 'TRUE',
+        createdAt: row[3],
+        description: row[4] || '',
+        dueDate: row[5] || '',
+        priority: row[6] || '',
+        tags: tags
+      });
+    }
+  }
+
+  return todos;
+}
+
+/**
+ * 恢复已删除的 todo（设置 deleted 标志为 false）
+ */
+function restoreTodo(id) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.getRange(i + 1, 8).setValue(false); // 第8列为 deleted 标志
+
+      let tags = [];
+      if (data[i][8]) {
+        try {
+          tags = JSON.parse(data[i][8]);
+        } catch (e) {
+          tags = [];
+        }
+      }
+
+      return {
+        id: data[i][0],
+        title: data[i][1],
+        completed: data[i][2] === true || data[i][2] === 'TRUE',
+        createdAt: data[i][3],
+        description: data[i][4] || '',
+        dueDate: data[i][5] || '',
+        priority: data[i][6] || '',
+        tags: tags
+      };
     }
   }
 

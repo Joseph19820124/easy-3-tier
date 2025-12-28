@@ -82,3 +82,44 @@ export async function deleteTodo(id: string): Promise<void> {
     throw new Error(result.error || "Failed to delete todo");
   }
 }
+
+export async function fetchDeletedTodos(): Promise<Todo[]> {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+    },
+    body: JSON.stringify({
+      action: "getDeleted",
+    }),
+  });
+
+  const result: ApiResponse<Todo[]> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to fetch deleted todos");
+  }
+
+  return result.data || [];
+}
+
+export async function restoreTodo(id: string): Promise<Todo> {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+    },
+    body: JSON.stringify({
+      action: "restore",
+      id,
+    }),
+  });
+
+  const result: ApiResponse<Todo> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to restore todo");
+  }
+
+  return result.data!;
+}

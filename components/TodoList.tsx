@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Todo, Priority } from "@/types/todo";
-import { fetchTodos, addTodo, updateTodo, deleteTodo } from "@/lib/api";
+import { fetchTodos, addTodo, updateTodo, deleteTodo, fetchDeletedTodos, restoreTodo } from "@/lib/api";
 import TodoItem from "./TodoItem";
 import TodoModal from "./TodoModal";
 import AddTodo from "./AddTodo";
@@ -17,6 +17,8 @@ export default function TodoList() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
+  const [deletedTodos, setDeletedTodos] = useState<Todo[]>([]);
 
   useEffect(() => {
     loadTodos();
@@ -83,6 +85,32 @@ export default function TodoList() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete todo");
     }
+  };
+
+  const loadDeletedTodos = async () => {
+    try {
+      const data = await fetchDeletedTodos();
+      setDeletedTodos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load deleted todos");
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      const restored = await restoreTodo(id);
+      setDeletedTodos((prev) => prev.filter((todo) => todo.id !== id));
+      setTodos((prev) => [...prev, restored]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to restore todo");
+    }
+  };
+
+  const toggleTrash = async () => {
+    if (!showTrash) {
+      await loadDeletedTodos();
+    }
+    setShowTrash(!showTrash);
   };
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -227,6 +255,18 @@ export default function TodoList() {
                 Clear
               </button>
             )}
+            <button
+              onClick={toggleTrash}
+              className={`flex items-center gap-1 transition-colors ${
+                showTrash ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title="回收站"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              回收站
+            </button>
           </div>
         </div>
 
@@ -295,6 +335,43 @@ export default function TodoList() {
           onClose={handleCloseModal}
           onSave={handleSaveEdit}
         />
+      )}
+
+      {showTrash && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={toggleTrash}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">回收站</h2>
+              <button onClick={toggleTrash} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {deletedTodos.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">回收站是空的</p>
+            ) : (
+              <div className="space-y-3">
+                {deletedTodos.map((todo) => (
+                  <div key={todo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-700 truncate">{todo.title}</p>
+                      {todo.description && (
+                        <p className="text-sm text-gray-400 truncate">{todo.description}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRestore(todo.id)}
+                      className="ml-3 px-3 py-1.5 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                    >
+                      恢复
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
