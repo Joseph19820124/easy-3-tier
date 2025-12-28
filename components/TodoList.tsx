@@ -86,6 +86,18 @@ export default function TodoList() {
 
   const completedCount = todos.filter((t) => t.completed).length;
 
+  const handleClearCompleted = async () => {
+    const completedTodos = todos.filter((t) => t.completed);
+    if (completedTodos.length === 0) return;
+
+    try {
+      await Promise.all(completedTodos.map((t) => deleteTodo(t.id)));
+      setTodos((prev) => prev.filter((t) => !t.completed));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to clear completed");
+    }
+  };
+
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter(todo => {
       // Search filter
@@ -158,7 +170,17 @@ export default function TodoList() {
 
         <div className="flex justify-between items-center text-sm text-gray-500">
           <span>{todos.length} tasks total</span>
-          <span>{completedCount} completed</span>
+          <div className="flex items-center gap-3">
+            <span>{completedCount} completed</span>
+            {completedCount > 0 && (
+              <button
+                onClick={handleClearCompleted}
+                className="text-red-500 hover:text-red-700 hover:underline transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap justify-between items-center gap-2">
