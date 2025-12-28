@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Todo, Priority } from "@/types/todo";
-import { fetchTodos, addTodo, updateTodo, deleteTodo, fetchDeletedTodos, restoreTodo } from "@/lib/api";
+import { fetchTodos, addTodo, updateTodo, deleteTodo, fetchDeletedTodos, restoreTodo, emptyTrash } from "@/lib/api";
 import TodoItem from "./TodoItem";
 import TodoModal from "./TodoModal";
 import AddTodo from "./AddTodo";
@@ -111,6 +111,20 @@ export default function TodoList() {
       await loadDeletedTodos();
     }
     setShowTrash(!showTrash);
+  };
+
+  const handleEmptyTrash = async () => {
+    if (deletedTodos.length === 0) return;
+
+    const confirmed = window.confirm(`确定要永久删除 ${deletedTodos.length} 个任务吗？此操作不可恢复！`);
+    if (!confirmed) return;
+
+    try {
+      await emptyTrash();
+      setDeletedTodos([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to empty trash");
+    }
   };
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -342,11 +356,21 @@ export default function TodoList() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">回收站</h2>
-              <button onClick={toggleTrash} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                {deletedTodos.length > 0 && (
+                  <button
+                    onClick={handleEmptyTrash}
+                    className="px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    清空
+                  </button>
+                )}
+                <button onClick={toggleTrash} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             {deletedTodos.length === 0 ? (
               <p className="text-center text-gray-400 py-8">回收站是空的</p>

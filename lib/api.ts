@@ -123,3 +123,23 @@ export async function restoreTodo(id: string): Promise<Todo> {
 
   return result.data!;
 }
+
+export async function emptyTrash(): Promise<{ deletedCount: number }> {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+    },
+    body: JSON.stringify({
+      action: "emptyTrash",
+    }),
+  });
+
+  const result: ApiResponse<{ deletedCount: number }> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to empty trash");
+  }
+
+  return result.data!;
+}

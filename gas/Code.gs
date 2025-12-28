@@ -51,6 +51,9 @@ function doPost(e) {
       case 'getDeleted':
         result = getDeletedTodos();
         break;
+      case 'emptyTrash':
+        result = emptyTrash();
+        break;
       default:
         throw new Error('Invalid action: ' + action);
     }
@@ -291,6 +294,26 @@ function restoreTodo(id) {
   }
 
   throw new Error('Todo not found: ' + id);
+}
+
+/**
+ * 永久删除所有已删除的 todos（清空回收站）
+ */
+function emptyTrash() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  // 从后往前删除，避免索引偏移问题
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+    const isDeleted = data[i][7] === true || data[i][7] === 'TRUE';
+    if (data[i][0] && isDeleted) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  return { deletedCount: deletedCount };
 }
 
 // ============ 辅助函数 ============
