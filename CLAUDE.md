@@ -44,6 +44,7 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Filter**: View all/active/completed todos
 - **Sort**: Sort by newest, oldest, due date, or priority
 - **Toggle**: Mark todos complete/incomplete
+- **Clear Completed**: Bulk delete all completed todos
 
 **Data Model (Google Sheet columns):**
 ```
