@@ -7,12 +7,13 @@ interface TodoModalProps {
   todo: Todo;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, updates: { title?: string; description?: string }) => Promise<void>;
+  onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string }) => Promise<void>;
 }
 
 export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description || "");
+  const [dueDate, setDueDate] = useState(todo.dueDate || "");
   const [loading, setLoading] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -20,6 +21,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     if (isOpen) {
       setTitle(todo.title);
       setDescription(todo.description || "");
+      setDueDate(todo.dueDate || "");
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [isOpen, todo]);
@@ -42,9 +44,10 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
 
-    const updates: { title?: string; description?: string } = {};
+    const updates: { title?: string; description?: string; dueDate?: string } = {};
     if (trimmedTitle !== todo.title) updates.title = trimmedTitle;
     if (description !== (todo.description || "")) updates.description = description;
+    if (dueDate !== (todo.dueDate || "")) updates.dueDate = dueDate;
 
     if (Object.keys(updates).length === 0) {
       onClose();
@@ -98,6 +101,18 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="添加任务描述（可选）"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              截止日期
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>

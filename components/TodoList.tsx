@@ -33,9 +33,9 @@ export default function TodoList() {
     }
   };
 
-  const handleAdd = async (title: string, description?: string) => {
+  const handleAdd = async (title: string, description?: string, dueDate?: string) => {
     try {
-      const newTodo = await addTodo(title, description);
+      const newTodo = await addTodo(title, description, dueDate);
       setTodos((prev) => [...prev, newTodo]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add todo");

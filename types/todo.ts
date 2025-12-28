@@ -4,6 +4,7 @@ export interface Todo {
   description?: string;
   completed: boolean;
   createdAt: string;
+  dueDate?: string;
 }
 
 export interface ApiResponse<T> {

@@ -37,10 +37,10 @@ function doPost(e) {
 
     switch (action) {
       case 'add':
-        result = addTodo(data.title, data.description);
+        result = addTodo(data.title, data.description, data.dueDate);
         break;
       case 'update':
-        result = updateTodo(data.id, data.completed, data.title, data.description);
+        result = updateTodo(data.id, data.completed, data.title, data.description, data.dueDate);
         break;
       case 'delete':
         result = deleteTodo(data.id);
@@ -74,7 +74,8 @@ function getAllTodos() {
         title: row[1],
         completed: row[2] === true || row[2] === 'TRUE',
         createdAt: row[3],
-        description: row[4] || ''
+        description: row[4] || '',
+        dueDate: row[5] || ''
       });
     }
   }
@@ -85,27 +86,29 @@ function getAllTodos() {
 /**
  * 添加新 todo
  */
-function addTodo(title, description) {
+function addTodo(title, description, dueDate) {
   const sheet = getSheet();
   const id = generateId();
   const createdAt = new Date().toISOString();
   const desc = description || '';
+  const due = dueDate || '';
 
-  sheet.appendRow([id, title, false, createdAt, desc]);
+  sheet.appendRow([id, title, false, createdAt, desc, due]);
 
   return {
     id: id,
     title: title,
     completed: false,
     createdAt: createdAt,
-    description: desc
+    description: desc,
+    dueDate: due
   };
 }
 
 /**
- * 更新 todo（支持修改完成状态、标题和描述）
+ * 更新 todo（支持修改完成状态、标题、描述和截止日期）
  */
-function updateTodo(id, completed, title, description) {
+function updateTodo(id, completed, title, description, dueDate) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -114,6 +117,7 @@ function updateTodo(id, completed, title, description) {
       let newTitle = data[i][1];
       let newCompleted = data[i][2] === true || data[i][2] === 'TRUE';
       let newDescription = data[i][4] || '';
+      let newDueDate = data[i][5] || '';
 
       // 更新标题（如果提供）
       if (title !== undefined && title !== null) {
@@ -133,12 +137,19 @@ function updateTodo(id, completed, title, description) {
         newDescription = description;
       }
 
+      // 更新截止日期（如果提供）
+      if (dueDate !== undefined && dueDate !== null) {
+        sheet.getRange(i + 1, 6).setValue(dueDate);
+        newDueDate = dueDate;
+      }
+
       return {
         id: id,
         title: newTitle,
         completed: newCompleted,
         createdAt: data[i][3],
-        description: newDescription
+        description: newDescription,
+        dueDate: newDueDate
       };
     }
   }
@@ -197,7 +208,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const headers = ['id', 'title', 'completed', 'createdAt', 'description'];
+  const headers = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {

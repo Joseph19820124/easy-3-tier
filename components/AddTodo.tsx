@@ -3,13 +3,14 @@
 import { useState } from "react";
 
 interface AddTodoProps {
-  onAdd: (title: string, description?: string) => Promise<void>;
+  onAdd: (title: string, description?: string, dueDate?: string) => Promise<void>;
 }
 
 export default function AddTodo({ onAdd }: AddTodoProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [showDescription, setShowDescription] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,10 +21,11 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
 
     setLoading(true);
     try {
-      await onAdd(trimmedTitle, description.trim() || undefined);
+      await onAdd(trimmedTitle, description.trim() || undefined, dueDate || undefined);
       setTitle("");
       setDescription("");
-      setShowDescription(false);
+      setDueDate("");
+      setShowDetails(false);
     } finally {
       setLoading(false);
     }
@@ -42,16 +44,16 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
         />
         <button
           type="button"
-          onClick={() => setShowDescription(!showDescription)}
+          onClick={() => setShowDetails(!showDetails)}
           className={`px-3 py-3 border rounded-lg transition-colors ${
-            showDescription
+            showDetails
               ? "border-blue-500 text-blue-500 bg-blue-50"
               : "border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300"
           }`}
-          title={showDescription ? "Hide description" : "Add description"}
+          title={showDetails ? "Hide details" : "Add details"}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
         </button>
         <button
@@ -62,15 +64,24 @@ export default function AddTodo({ onAdd }: AddTodoProps) {
           {loading ? "Adding..." : "Add"}
         </button>
       </div>
-      {showDescription && (
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add description (optional)..."
-          rows={2}
-          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-          disabled={loading}
-        />
+      {showDetails && (
+        <div className="flex gap-3">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description (optional)..."
+            rows={2}
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+            disabled={loading}
+          />
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            disabled={loading}
+          />
+        </div>
       )}
     </form>
   );
