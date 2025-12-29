@@ -184,13 +184,16 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && tagInput.trim()) {
+                if (e.key === "Enter") {
                   e.preventDefault();
-                  const newTag = tagInput.trim();
-                  if (!tags.includes(newTag)) {
-                    setTags([...tags, newTag]);
+                  e.stopPropagation();
+                  if (tagInput.trim()) {
+                    const newTag = tagInput.trim();
+                    if (!tags.includes(newTag)) {
+                      setTags([...tags, newTag]);
+                    }
+                    setTagInput("");
                   }
-                  setTagInput("");
                 }
               }}
               placeholder="添加标签，按 Enter 确认"
