@@ -47,6 +47,7 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Toggle**: Mark todos complete/incomplete
 - **Clear Completed**: Bulk delete all completed todos
 - **Trash/Restore**: Soft-deleted todos go to trash; can be restored via trash modal
+- **Empty Trash**: Permanently delete all items in trash (irreversible)
 
 **Data Model (Google Sheet columns):**
 ```
