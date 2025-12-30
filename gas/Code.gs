@@ -18,7 +18,8 @@ const SHEET_NAME = 'Sheet1'; // 工作表名称
  */
 function doGet(e) {
   try {
-    const todos = getAllTodos();
+    const userId = e.parameter.userId || '';
+    const todos = getAllTodos(userId);
     return createJsonResponse({ success: true, data: todos });
   } catch (error) {
     return createJsonResponse({ success: false, error: error.message });
@@ -32,12 +33,13 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
+    const userId = data.userId || '';
 
     let result;
 
     switch (action) {
       case 'add':
-        result = addTodo(data.title, data.description, data.dueDate, data.priority, data.tags);
+        result = addTodo(data.title, data.description, data.dueDate, data.priority, data.tags, userId);
         break;
       case 'update':
         result = updateTodo(data.id, data.completed, data.title, data.description, data.dueDate, data.priority, data.tags);
@@ -49,10 +51,10 @@ function doPost(e) {
         result = restoreTodo(data.id);
         break;
       case 'getDeleted':
-        result = getDeletedTodos();
+        result = getDeletedTodos(userId);
         break;
       case 'emptyTrash':
-        result = emptyTrash();
+        result = emptyTrash(userId);
         break;
       default:
         throw new Error('Invalid action: ' + action);
@@ -67,9 +69,9 @@ function doPost(e) {
 // ============ CRUD 操作 ============
 
 /**
- * 获取所有 todos（排除已软删除的记录）
+ * 获取所有 todos（排除已软删除的记录，按 userId 过滤）
  */
-function getAllTodos() {
+function getAllTodos(userId) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -78,6 +80,13 @@ function getAllTodos() {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const isDeleted = row[7] === true || row[7] === 'TRUE';
+    const rowUserId = row[9] || '';
+
+    // 按 userId 过滤（如果提供了 userId）
+    if (userId && rowUserId !== userId) {
+      continue;
+    }
+
     if (row[0] && !isDeleted) { // 确保有 ID 且未删除
       // 解析 tags JSON 字符串
       let tags = [];
@@ -96,7 +105,8 @@ function getAllTodos() {
         description: row[4] || '',
         dueDate: row[5] || '',
         priority: row[6] || '',
-        tags: tags
+        tags: tags,
+        userId: rowUserId
       });
     }
   }
@@ -107,7 +117,7 @@ function getAllTodos() {
 /**
  * 添加新 todo
  */
-function addTodo(title, description, dueDate, priority, tags) {
+function addTodo(title, description, dueDate, priority, tags, userId) {
   const sheet = getSheet();
   const id = generateId();
   const createdAt = new Date().toISOString();
@@ -116,8 +126,9 @@ function addTodo(title, description, dueDate, priority, tags) {
   const prio = priority || '';
   const tagsArray = tags || [];
   const tagsJson = tagsArray.length > 0 ? JSON.stringify(tagsArray) : '';
+  const uid = userId || '';
 
-  sheet.appendRow([id, title, false, createdAt, desc, due, prio, false, tagsJson]);
+  sheet.appendRow([id, title, false, createdAt, desc, due, prio, false, tagsJson, uid]);
 
   return {
     id: id,
@@ -127,7 +138,8 @@ function addTodo(title, description, dueDate, priority, tags) {
     description: desc,
     dueDate: due,
     priority: prio,
-    tags: tagsArray
+    tags: tagsArray,
+    userId: uid
   };
 }
 
@@ -199,7 +211,8 @@ function updateTodo(id, completed, title, description, dueDate, priority, tags) 
         description: newDescription,
         dueDate: newDueDate,
         priority: newPriority,
-        tags: newTags
+        tags: newTags,
+        userId: data[i][9] || ''
       };
     }
   }
@@ -225,9 +238,9 @@ function deleteTodo(id) {
 }
 
 /**
- * 获取已删除的 todos
+ * 获取已删除的 todos（按 userId 过滤）
  */
-function getDeletedTodos() {
+function getDeletedTodos(userId) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -235,6 +248,13 @@ function getDeletedTodos() {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const isDeleted = row[7] === true || row[7] === 'TRUE';
+    const rowUserId = row[9] || '';
+
+    // 按 userId 过滤（如果提供了 userId）
+    if (userId && rowUserId !== userId) {
+      continue;
+    }
+
     if (row[0] && isDeleted) { // 确保有 ID 且已删除
       let tags = [];
       if (row[8]) {
@@ -252,7 +272,8 @@ function getDeletedTodos() {
         description: row[4] || '',
         dueDate: row[5] || '',
         priority: row[6] || '',
-        tags: tags
+        tags: tags,
+        userId: rowUserId
       });
     }
   }
@@ -288,7 +309,8 @@ function restoreTodo(id) {
         description: data[i][4] || '',
         dueDate: data[i][5] || '',
         priority: data[i][6] || '',
-        tags: tags
+        tags: tags,
+        userId: data[i][9] || ''
       };
     }
   }
@@ -297,9 +319,9 @@ function restoreTodo(id) {
 }
 
 /**
- * 永久删除所有已删除的 todos（清空回收站）
+ * 永久删除所有已删除的 todos（清空回收站，按 userId 过滤）
  */
-function emptyTrash() {
+function emptyTrash(userId) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
@@ -307,6 +329,13 @@ function emptyTrash() {
   let deletedCount = 0;
   for (let i = data.length - 1; i >= 1; i--) {
     const isDeleted = data[i][7] === true || data[i][7] === 'TRUE';
+    const rowUserId = data[i][9] || '';
+
+    // 按 userId 过滤（如果提供了 userId）
+    if (userId && rowUserId !== userId) {
+      continue;
+    }
+
     if (data[i][0] && isDeleted) {
       sheet.deleteRow(i + 1);
       deletedCount++;
@@ -351,7 +380,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority', 'deleted', 'tags'];
+  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority', 'deleted', 'tags', 'userId'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {
