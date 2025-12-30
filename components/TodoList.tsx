@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Todo, Priority } from "@/types/todo";
 import { fetchTodos, addTodo, updateTodo, deleteTodo, fetchDeletedTodos, restoreTodo, emptyTrash } from "@/lib/api";
 import TodoItem from "./TodoItem";
@@ -8,6 +10,8 @@ import TodoModal from "./TodoModal";
 import AddTodo from "./AddTodo";
 
 export default function TodoList() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,15 +24,23 @@ export default function TodoList() {
   const [showTrash, setShowTrash] = useState(false);
   const [deletedTodos, setDeletedTodos] = useState<Todo[]>([]);
 
+  const userId = session?.user?.id;
+
   useEffect(() => {
+    if (status === "loading") return;
+    if (!session) {
+      router.push("/auth/signin");
+      return;
+    }
     loadTodos();
-  }, []);
+  }, [session, status, router]);
 
   const loadTodos = async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchTodos();
+      const data = await fetchTodos(userId);
       setTodos(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load todos");
@@ -38,8 +50,9 @@ export default function TodoList() {
   };
 
   const handleAdd = async (title: string, description?: string, dueDate?: string, priority?: Priority, tags?: string[]) => {
+    if (!userId) return;
     try {
-      const newTodo = await addTodo(title, description, dueDate, priority, tags);
+      const newTodo = await addTodo(title, description, dueDate, priority, tags, userId);
       setTodos((prev) => [...prev, newTodo]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add todo");
@@ -88,8 +101,9 @@ export default function TodoList() {
   };
 
   const loadDeletedTodos = async () => {
+    if (!userId) return;
     try {
-      const data = await fetchDeletedTodos();
+      const data = await fetchDeletedTodos(userId);
       setDeletedTodos(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load deleted todos");
@@ -120,7 +134,7 @@ export default function TodoList() {
     if (!confirmed) return;
 
     try {
-      await emptyTrash();
+      await emptyTrash(userId);
       setDeletedTodos([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to empty trash");
@@ -194,12 +208,16 @@ export default function TodoList() {
     return result;
   }, [todos, filter, sortOrder, searchQuery, selectedTag]);
 
-  if (loading) {
+  if (status === "loading" || loading) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
       </div>
     );
+  }
+
+  if (!session) {
+    return null;
   }
 
   return (

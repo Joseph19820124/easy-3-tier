@@ -2,8 +2,9 @@ import { Todo, ApiResponse, Priority } from "@/types/todo";
 
 const API_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
 
-export async function fetchTodos(): Promise<Todo[]> {
-  const response = await fetch(API_URL);
+export async function fetchTodos(userId?: string): Promise<Todo[]> {
+  const url = userId ? `${API_URL}?userId=${encodeURIComponent(userId)}` : API_URL;
+  const response = await fetch(url);
   const result: ApiResponse<Todo[]> = await response.json();
 
   if (!result.success) {
@@ -13,7 +14,7 @@ export async function fetchTodos(): Promise<Todo[]> {
   return result.data || [];
 }
 
-export async function addTodo(title: string, description?: string, dueDate?: string, priority?: Priority, tags?: string[]): Promise<Todo> {
+export async function addTodo(title: string, description?: string, dueDate?: string, priority?: Priority, tags?: string[], userId?: string): Promise<Todo> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -26,6 +27,7 @@ export async function addTodo(title: string, description?: string, dueDate?: str
       dueDate,
       priority,
       tags,
+      userId,
     }),
   });
 
@@ -83,7 +85,7 @@ export async function deleteTodo(id: string): Promise<void> {
   }
 }
 
-export async function fetchDeletedTodos(): Promise<Todo[]> {
+export async function fetchDeletedTodos(userId?: string): Promise<Todo[]> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -91,6 +93,7 @@ export async function fetchDeletedTodos(): Promise<Todo[]> {
     },
     body: JSON.stringify({
       action: "getDeleted",
+      userId,
     }),
   });
 
@@ -124,7 +127,7 @@ export async function restoreTodo(id: string): Promise<Todo> {
   return result.data!;
 }
 
-export async function emptyTrash(): Promise<{ deletedCount: number }> {
+export async function emptyTrash(userId?: string): Promise<{ deletedCount: number }> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -132,6 +135,7 @@ export async function emptyTrash(): Promise<{ deletedCount: number }> {
     },
     body: JSON.stringify({
       action: "emptyTrash",
+      userId,
     }),
   });
 
