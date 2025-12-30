@@ -11,7 +11,7 @@
 const SHEET_ID = '1KocYpvYiF0mHkC5r6EB9QkVQhF-o1i0eZnBtntffmVg'; // Todo Database
 const SHEET_NAME = 'Sheet1'; // 工作表名称
 const ATTACHMENT_FOLDER_NAME = 'TodoAttachments'; // Google Drive 附件文件夹名称
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB 文件大小限制
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB 文件大小限制
 const ALLOWED_MIME_TYPES = [
   'image/png', 'image/jpeg', 'image/gif', 'image/webp',
   'application/pdf',

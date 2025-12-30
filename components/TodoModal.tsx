@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Todo, Priority, Attachment } from "@/types/todo";
 import { uploadAttachment, deleteAttachment } from "@/lib/api";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_EXTENSIONS = [
   '.png', '.jpg', '.jpeg', '.gif', '.webp',
   '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
@@ -385,7 +385,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave, onAttachmentC
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  添加附件 (最大 10MB)
+                  添加附件 (最大 100MB)
                 </>
               )}
             </button>
