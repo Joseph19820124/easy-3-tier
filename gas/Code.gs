@@ -19,12 +19,9 @@ const SHEET_NAME = 'Sheet1'; // 工作表名称
 function doGet(e) {
   try {
     const userId = e.parameter.userId || '';
-    Logger.log('doGet called with userId: ' + userId);
     const todos = getAllTodos(userId);
-    Logger.log('Returning ' + todos.length + ' todos');
     return createJsonResponse({ success: true, data: todos });
   } catch (error) {
-    Logger.log('Error in doGet: ' + error.message);
     return createJsonResponse({ success: false, error: error.message });
   }
 }
@@ -78,9 +75,6 @@ function getAllTodos(userId) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
-  Logger.log('getAllTodos called with userId: "' + userId + '"');
-  Logger.log('Total rows in sheet: ' + data.length);
-
   // 跳过标题行，过滤已删除的记录
   const todos = [];
   for (let i = 1; i < data.length; i++) {
@@ -88,16 +82,12 @@ function getAllTodos(userId) {
     const isDeleted = row[7] === true || row[7] === 'TRUE';
     const rowUserId = row[9] || '';
 
-    Logger.log('Row ' + i + ': rowUserId="' + rowUserId + '", isDeleted=' + isDeleted);
-
     // 按 userId 过滤（如果提供了 userId）
     if (userId && rowUserId !== userId) {
-      Logger.log('  -> Skipping row ' + i + ' (userId mismatch)');
       continue;
     }
 
     if (row[0] && !isDeleted) { // 确保有 ID 且未删除
-      Logger.log('  -> Including row ' + i + ' in results');
       // 解析 tags JSON 字符串
       let tags = [];
       if (row[8]) {
@@ -121,7 +111,6 @@ function getAllTodos(userId) {
     }
   }
 
-  Logger.log('Filtered todos count: ' + todos.length);
   return todos;
 }
 

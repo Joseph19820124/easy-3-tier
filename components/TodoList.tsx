@@ -40,9 +40,7 @@ export default function TodoList() {
     try {
       setLoading(true);
       setError(null);
-      console.log("Loading todos for userId:", userId);
       const data = await fetchTodos(userId);
-      console.log("Loaded todos:", data);
       setTodos(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load todos");
