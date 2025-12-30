@@ -35,3 +35,4 @@ next-env.d.ts
 
 # Test artifacts
 cookies.txt
+prisma/dev.db
