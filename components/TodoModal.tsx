@@ -1,7 +1,30 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Todo, Priority } from "@/types/todo";
+import { Todo, Priority, Attachment } from "@/types/todo";
+import { uploadAttachment, deleteAttachment } from "@/lib/api";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXTENSIONS = [
+  '.png', '.jpg', '.jpeg', '.gif', '.webp',
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.txt', '.csv', '.md'
+];
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function getFileIcon(mimeType: string): string {
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType === 'application/pdf') return '📄';
+  if (mimeType.includes('word')) return '📝';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+  if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📑';
+  return '📎';
+}
 
 // 将日期转换为 YYYY-MM-DD 格式（input type="date" 要求的格式）
 function formatDateForInput(dateStr: string | undefined): string {
@@ -16,9 +39,10 @@ interface TodoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (id: string, updates: { title?: string; description?: string; dueDate?: string; priority?: Priority; tags?: string[] }) => Promise<void>;
+  onAttachmentChange?: (todoId: string, attachments: Attachment[]) => void;
 }
 
-export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalProps) {
+export default function TodoModal({ todo, isOpen, onClose, onSave, onAttachmentChange }: TodoModalProps) {
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description || "");
   const [dueDate, setDueDate] = useState(formatDateForInput(todo.dueDate));
@@ -26,7 +50,11 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
   const [tags, setTags] = useState<string[]>(todo.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>(todo.attachments || []);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,6 +64,8 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
       setPriority(todo.priority || "");
       setTags(todo.tags || []);
       setTagInput("");
+      setAttachments(todo.attachments || []);
+      setUploadError(null);
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [isOpen, todo]);
@@ -53,6 +83,74 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
       document.body.style.overflow = "";
     };
   }, [isOpen, onClose]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件扩展名
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setUploadError(`不支持的文件类型。支持: ${ALLOWED_EXTENSIONS.join(', ')}`);
+      return;
+    }
+
+    // 验证文件大小
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError('文件大小超过 10MB 限制');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // 读取文件为 Base64
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // 移除 data:xxx;base64, 前缀
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // 上传到服务器
+      const newAttachment = await uploadAttachment(todo.id, {
+        name: file.name,
+        mimeType: file.type,
+        data: base64Data,
+      });
+
+      const updatedAttachments = [...attachments, newAttachment];
+      setAttachments(updatedAttachments);
+      onAttachmentChange?.(todo.id, updatedAttachments);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : '上传失败');
+    } finally {
+      setUploading(false);
+      // 清空 file input 以允许重复上传同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!confirm('确定要删除这个附件吗？')) return;
+
+    try {
+      await deleteAttachment(todo.id, attachmentId);
+      const updatedAttachments = attachments.filter(a => a.id !== attachmentId);
+      setAttachments(updatedAttachments);
+      onAttachmentChange?.(todo.id, updatedAttachments);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : '删除失败');
+    }
+  };
 
   const handleSave = async () => {
     const trimmedTitle = title.trim();
@@ -87,7 +185,7 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-semibold text-gray-800 mb-4">编辑任务</h2>
@@ -199,6 +297,101 @@ export default function TodoModal({ todo, isOpen, onClose, onSave }: TodoModalPr
               placeholder="添加标签，按 Enter 确认"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
+          </div>
+
+          {/* 附件管理 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              附件
+            </label>
+
+            {/* 附件列表 */}
+            {attachments.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-lg">{getFileIcon(attachment.mimeType)}</span>
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline truncate block"
+                          title={attachment.name}
+                        >
+                          {attachment.name}
+                        </a>
+                        <span className="text-xs text-gray-400">
+                          {formatFileSize(attachment.size)}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAttachment(attachment.id)}
+                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                      title="删除附件"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 上传错误提示 */}
+            {uploadError && (
+              <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                {uploadError}
+                <button
+                  onClick={() => setUploadError(null)}
+                  className="ml-2 underline hover:no-underline"
+                >
+                  关闭
+                </button>
+              </div>
+            )}
+
+            {/* 上传按钮 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              accept={ALLOWED_EXTENSIONS.join(',')}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {uploading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  上传中...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  添加附件 (最大 10MB)
+                </>
+              )}
+            </button>
+            <p className="mt-1 text-xs text-gray-400">
+              支持图片、PDF、Office 文档、文本文件
+            </p>
           </div>
         </div>
 

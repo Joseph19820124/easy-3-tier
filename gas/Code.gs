@@ -10,6 +10,16 @@
 // ============ 配置 ============
 const SHEET_ID = '1KocYpvYiF0mHkC5r6EB9QkVQhF-o1i0eZnBtntffmVg'; // Todo Database
 const SHEET_NAME = 'Sheet1'; // 工作表名称
+const ATTACHMENT_FOLDER_NAME = 'TodoAttachments'; // Google Drive 附件文件夹名称
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB 文件大小限制
+const ALLOWED_MIME_TYPES = [
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain', 'text/csv', 'text/markdown'
+];
 
 // ============ 主要处理函数 ============
 
@@ -56,6 +66,12 @@ function doPost(e) {
       case 'emptyTrash':
         result = emptyTrash(userId);
         break;
+      case 'uploadAttachment':
+        result = uploadAttachment(data.todoId, data.fileName, data.mimeType, data.fileData);
+        break;
+      case 'deleteAttachment':
+        result = deleteAttachment(data.todoId, data.attachmentId);
+        break;
       default:
         throw new Error('Invalid action: ' + action);
     }
@@ -97,6 +113,15 @@ function getAllTodos(userId) {
           tags = [];
         }
       }
+      // 解析 attachments JSON 字符串
+      let attachments = [];
+      if (row[10]) {
+        try {
+          attachments = JSON.parse(row[10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
       todos.push({
         id: row[0],
         title: row[1],
@@ -106,7 +131,8 @@ function getAllTodos(userId) {
         dueDate: row[5] || '',
         priority: row[6] || '',
         tags: tags,
-        userId: rowUserId
+        userId: rowUserId,
+        attachments: attachments
       });
     }
   }
@@ -128,7 +154,7 @@ function addTodo(title, description, dueDate, priority, tags, userId) {
   const tagsJson = tagsArray.length > 0 ? JSON.stringify(tagsArray) : '';
   const uid = userId || '';
 
-  sheet.appendRow([id, title, false, createdAt, desc, due, prio, false, tagsJson, uid]);
+  sheet.appendRow([id, title, false, createdAt, desc, due, prio, false, tagsJson, uid, '']);
 
   return {
     id: id,
@@ -139,7 +165,8 @@ function addTodo(title, description, dueDate, priority, tags, userId) {
     dueDate: due,
     priority: prio,
     tags: tagsArray,
-    userId: uid
+    userId: uid,
+    attachments: []
   };
 }
 
@@ -203,6 +230,16 @@ function updateTodo(id, completed, title, description, dueDate, priority, tags) 
         newTags = tags;
       }
 
+      // 获取现有附件
+      let attachments = [];
+      if (data[i][10]) {
+        try {
+          attachments = JSON.parse(data[i][10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
+
       return {
         id: id,
         title: newTitle,
@@ -212,7 +249,8 @@ function updateTodo(id, completed, title, description, dueDate, priority, tags) 
         dueDate: newDueDate,
         priority: newPriority,
         tags: newTags,
-        userId: data[i][9] || ''
+        userId: data[i][9] || '',
+        attachments: attachments
       };
     }
   }
@@ -264,6 +302,14 @@ function getDeletedTodos(userId) {
           tags = [];
         }
       }
+      let attachments = [];
+      if (row[10]) {
+        try {
+          attachments = JSON.parse(row[10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
       todos.push({
         id: row[0],
         title: row[1],
@@ -273,7 +319,8 @@ function getDeletedTodos(userId) {
         dueDate: row[5] || '',
         priority: row[6] || '',
         tags: tags,
-        userId: rowUserId
+        userId: rowUserId,
+        attachments: attachments
       });
     }
   }
@@ -301,6 +348,15 @@ function restoreTodo(id) {
         }
       }
 
+      let attachments = [];
+      if (data[i][10]) {
+        try {
+          attachments = JSON.parse(data[i][10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
+
       return {
         id: data[i][0],
         title: data[i][1],
@@ -310,7 +366,8 @@ function restoreTodo(id) {
         dueDate: data[i][5] || '',
         priority: data[i][6] || '',
         tags: tags,
-        userId: data[i][9] || ''
+        userId: data[i][9] || '',
+        attachments: attachments
       };
     }
   }
@@ -343,6 +400,141 @@ function emptyTrash(userId) {
   }
 
   return { deletedCount: deletedCount };
+}
+
+// ============ 附件功能 ============
+
+/**
+ * 获取或创建附件文件夹
+ */
+function getOrCreateAttachmentFolder() {
+  const folders = DriveApp.getFoldersByName(ATTACHMENT_FOLDER_NAME);
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+  return DriveApp.createFolder(ATTACHMENT_FOLDER_NAME);
+}
+
+/**
+ * 上传附件到 Google Drive
+ * @param {string} todoId - Todo ID
+ * @param {string} fileName - 文件名
+ * @param {string} mimeType - MIME 类型
+ * @param {string} fileData - Base64 编码的文件数据
+ */
+function uploadAttachment(todoId, fileName, mimeType, fileData) {
+  // 验证 MIME 类型
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    throw new Error('不支持的文件类型: ' + mimeType);
+  }
+
+  // 解码 Base64 数据
+  const decodedData = Utilities.base64Decode(fileData);
+  const fileSize = decodedData.length;
+
+  // 验证文件大小
+  if (fileSize > MAX_FILE_SIZE) {
+    throw new Error('文件大小超过限制 (最大 10MB)');
+  }
+
+  // 获取附件文件夹
+  const folder = getOrCreateAttachmentFolder();
+
+  // 创建文件
+  const blob = Utilities.newBlob(decodedData, mimeType, fileName);
+  const file = folder.createFile(blob);
+
+  // 设置文件为任何人可通过链接查看
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  // 创建附件对象
+  const attachment = {
+    id: file.getId(),
+    name: fileName,
+    mimeType: mimeType,
+    url: file.getUrl(),
+    size: fileSize,
+    uploadedAt: new Date().toISOString()
+  };
+
+  // 更新 Google Sheet 中的 attachments 字段
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === todoId) {
+      // 获取现有附件
+      let attachments = [];
+      if (data[i][10]) {
+        try {
+          attachments = JSON.parse(data[i][10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
+
+      // 添加新附件
+      attachments.push(attachment);
+
+      // 保存到 Sheet
+      sheet.getRange(i + 1, 11).setValue(JSON.stringify(attachments));
+
+      return attachment;
+    }
+  }
+
+  // 如果找不到 todo，删除已上传的文件
+  file.setTrashed(true);
+  throw new Error('Todo not found: ' + todoId);
+}
+
+/**
+ * 删除附件
+ * @param {string} todoId - Todo ID
+ * @param {string} attachmentId - 附件 ID (Google Drive 文件 ID)
+ */
+function deleteAttachment(todoId, attachmentId) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === todoId) {
+      // 获取现有附件
+      let attachments = [];
+      if (data[i][10]) {
+        try {
+          attachments = JSON.parse(data[i][10]);
+        } catch (e) {
+          attachments = [];
+        }
+      }
+
+      // 查找并删除附件
+      const attachmentIndex = attachments.findIndex(a => a.id === attachmentId);
+      if (attachmentIndex === -1) {
+        throw new Error('Attachment not found: ' + attachmentId);
+      }
+
+      // 从 Google Drive 删除文件
+      try {
+        const file = DriveApp.getFileById(attachmentId);
+        file.setTrashed(true);
+      } catch (e) {
+        // 文件可能已经被删除，继续执行
+        Logger.log('File already deleted or not found: ' + attachmentId);
+      }
+
+      // 从数组中移除
+      attachments.splice(attachmentIndex, 1);
+
+      // 保存到 Sheet
+      sheet.getRange(i + 1, 11).setValue(attachments.length > 0 ? JSON.stringify(attachments) : '');
+
+      return { success: true, deletedId: attachmentId };
+    }
+  }
+
+  throw new Error('Todo not found: ' + todoId);
 }
 
 // ============ 辅助函数 ============
@@ -380,7 +572,7 @@ function createJsonResponse(data) {
  */
 function initializeSheet() {
   const sheet = getSheet();
-  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority', 'deleted', 'tags', 'userId'];
+  const expectedHeaders = ['id', 'title', 'completed', 'createdAt', 'description', 'dueDate', 'priority', 'deleted', 'tags', 'userId', 'attachments'];
 
   // 检查是否已有数据
   if (sheet.getLastRow() === 0) {

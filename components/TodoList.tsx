@@ -366,6 +366,16 @@ export default function TodoList() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSave={handleSaveEdit}
+          onAttachmentChange={(todoId, attachments) => {
+            setTodos((prev) =>
+              prev.map((todo) =>
+                todo.id === todoId ? { ...todo, attachments } : todo
+              )
+            );
+            if (selectedTodo.id === todoId) {
+              setSelectedTodo({ ...selectedTodo, attachments });
+            }
+          }}
         />
       )}
 

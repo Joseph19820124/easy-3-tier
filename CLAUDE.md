@@ -48,13 +48,14 @@ page.tsx → TodoList (state management) → TodoItem, AddTodo, TodoModal
 - **Clear Completed**: Bulk delete all completed todos
 - **Trash/Restore**: Soft-deleted todos go to trash; can be restored via trash modal
 - **Empty Trash**: Permanently delete all items in trash (irreversible)
+- **Attachments**: Upload files (images, PDF, Office docs, text) to Google Drive; max 10MB per file
 
 **Data Model (Google Sheet columns):**
 ```
-id | title | completed | createdAt | description | dueDate | priority | deleted | tags
+id | title | completed | createdAt | description | dueDate | priority | deleted | tags | userId | attachments
 ```
 
-Note: `deleted` is a soft-delete flag. Records with `deleted=true` are hidden from frontend but preserved in the database. `tags` is stored as a JSON array string (e.g., `["work","urgent"]`).
+Note: `deleted` is a soft-delete flag. Records with `deleted=true` are hidden from frontend but preserved in the database. `tags` is stored as a JSON array string (e.g., `["work","urgent"]`). `attachments` is stored as a JSON array of attachment objects with id, name, mimeType, url, size, uploadedAt.
 
 ## Environment Setup
 
