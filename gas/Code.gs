@@ -19,9 +19,12 @@ const SHEET_NAME = 'Sheet1'; // 工作表名称
 function doGet(e) {
   try {
     const userId = e.parameter.userId || '';
+    Logger.log('doGet called with userId: ' + userId);
     const todos = getAllTodos(userId);
+    Logger.log('Returning ' + todos.length + ' todos');
     return createJsonResponse({ success: true, data: todos });
   } catch (error) {
+    Logger.log('Error in doGet: ' + error.message);
     return createJsonResponse({ success: false, error: error.message });
   }
 }
@@ -75,6 +78,9 @@ function getAllTodos(userId) {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
 
+  Logger.log('getAllTodos called with userId: "' + userId + '"');
+  Logger.log('Total rows in sheet: ' + data.length);
+
   // 跳过标题行，过滤已删除的记录
   const todos = [];
   for (let i = 1; i < data.length; i++) {
@@ -82,12 +88,16 @@ function getAllTodos(userId) {
     const isDeleted = row[7] === true || row[7] === 'TRUE';
     const rowUserId = row[9] || '';
 
+    Logger.log('Row ' + i + ': rowUserId="' + rowUserId + '", isDeleted=' + isDeleted);
+
     // 按 userId 过滤（如果提供了 userId）
     if (userId && rowUserId !== userId) {
+      Logger.log('  -> Skipping row ' + i + ' (userId mismatch)');
       continue;
     }
 
     if (row[0] && !isDeleted) { // 确保有 ID 且未删除
+      Logger.log('  -> Including row ' + i + ' in results');
       // 解析 tags JSON 字符串
       let tags = [];
       if (row[8]) {
@@ -111,6 +121,7 @@ function getAllTodos(userId) {
     }
   }
 
+  Logger.log('Filtered todos count: ' + todos.length);
   return todos;
 }
 
@@ -406,4 +417,45 @@ function initializeSheet() {
   } else {
     Logger.log('Sheet headers are up to date');
   }
+}
+
+/**
+ * 清理孤立的 todos（没有有效 userId 的记录）
+ * 在 GAS 编辑器中手动运行此函数
+ * @param {string[]} validUserIds - 有效的生产环境用户 ID 列表
+ */
+function cleanupOrphanedTodos() {
+  // 生产环境的有效用户 ID（从 Turso 数据库获取）
+  const validUserIds = [
+    'cmjrvsko300008atvodp1aqjc',  // joseph.siyi@gmail.com
+    'cmjrvv7330000a97inhh7iwmy',  // joseph19820124@gmail.com
+    'cmjrvwnm60001a97iqur3hx02',  // testprod@example.com
+  ];
+
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+
+  // 从后往前删除，避免索引偏移问题
+  let deletedCount = 0;
+  const deletedTitles = [];
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    const rowUserId = data[i][9] || '';
+    const title = data[i][1] || '';
+
+    // 如果 userId 为空或不在有效列表中，删除该行
+    if (!rowUserId || !validUserIds.includes(rowUserId)) {
+      deletedTitles.push(title);
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  Logger.log('Cleanup completed!');
+  Logger.log('Deleted ' + deletedCount + ' orphaned todos:');
+  deletedTitles.forEach(function(title) {
+    Logger.log('  - ' + title);
+  });
+
+  return { deletedCount: deletedCount, deletedTitles: deletedTitles };
 }

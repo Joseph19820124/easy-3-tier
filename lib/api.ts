@@ -4,6 +4,8 @@ const API_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
 
 export async function fetchTodos(userId?: string): Promise<Todo[]> {
   const url = userId ? `${API_URL}?userId=${encodeURIComponent(userId)}` : API_URL;
+  console.log("Fetching todos from:", url);
+  console.log("UserId parameter:", userId);
   const response = await fetch(url);
   const result: ApiResponse<Todo[]> = await response.json();
 
@@ -11,6 +13,7 @@ export async function fetchTodos(userId?: string): Promise<Todo[]> {
     throw new Error(result.error || "Failed to fetch todos");
   }
 
+  console.log("API returned todos:", result.data);
   return result.data || [];
 }
 
